@@ -34,7 +34,6 @@ __decorate([
 ], Justification.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => employee_entity_1.Employee, (employee) => employee.justifications, { onDelete: 'CASCADE' }),
-    (0, typeorm_1.ForeignKey)(() => employee_entity_1.Employee),
     __metadata("design:type", employee_entity_1.Employee)
 ], Justification.prototype, "employee", void 0);
 __decorate([

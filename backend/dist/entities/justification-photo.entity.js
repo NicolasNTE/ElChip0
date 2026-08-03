@@ -29,7 +29,6 @@ __decorate([
 ], JustificationPhoto.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => justification_entity_1.Justification, (justification) => justification.photos, { onDelete: 'CASCADE' }),
-    (0, typeorm_1.ForeignKey)(() => justification_entity_1.Justification),
     __metadata("design:type", justification_entity_1.Justification)
 ], JustificationPhoto.prototype, "justification", void 0);
 __decorate([

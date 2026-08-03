@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn, UpdateDateColumn, ForeignKey } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Company } from './company.entity';
 import { AttendanceRecord } from './attendance-record.entity';
 import { Justification } from './justification.entity';
@@ -30,7 +30,6 @@ export class Employee {
   scheduledEndTime: string;
 
   @ManyToOne(() => Company, (company) => company.employees, { onDelete: 'CASCADE' })
-  @ForeignKey(() => Company)
   company: Company;
 
   @Column('uuid')

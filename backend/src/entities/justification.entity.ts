@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn, UpdateDateColumn, ForeignKey } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Employee } from './employee.entity';
 import { JustificationPhoto } from './justification-photo.entity';
 
@@ -8,7 +8,6 @@ export class Justification {
   id: string;
 
   @ManyToOne(() => Employee, (employee) => employee.justifications, { onDelete: 'CASCADE' })
-  @ForeignKey(() => Employee)
   employee: Employee;
 
   @Column('uuid')

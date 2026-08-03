@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, ForeignKey } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
 import { Justification } from './justification.entity';
 
 @Entity('justification_photos')
@@ -7,7 +7,6 @@ export class JustificationPhoto {
   id: string;
 
   @ManyToOne(() => Justification, (justification) => justification.photos, { onDelete: 'CASCADE' })
-  @ForeignKey(() => Justification)
   justification: Justification;
 
   @Column('uuid')

@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, ForeignKey, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 import { Employee } from './employee.entity';
 
 @Entity('attendance_records')
@@ -8,7 +8,6 @@ export class AttendanceRecord {
   id: string;
 
   @ManyToOne(() => Employee, (employee) => employee.attendanceRecords, { onDelete: 'CASCADE' })
-  @ForeignKey(() => Employee)
   employee: Employee;
 
   @Column('uuid')

@@ -30,7 +30,6 @@ __decorate([
 ], AttendanceRecord.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => employee_entity_1.Employee, (employee) => employee.attendanceRecords, { onDelete: 'CASCADE' }),
-    (0, typeorm_1.ForeignKey)(() => employee_entity_1.Employee),
     __metadata("design:type", employee_entity_1.Employee)
 ], AttendanceRecord.prototype, "employee", void 0);
 __decorate([

@@ -66,7 +66,6 @@ __decorate([
 ], Employee.prototype, "scheduledEndTime", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => company_entity_1.Company, (company) => company.employees, { onDelete: 'CASCADE' }),
-    (0, typeorm_1.ForeignKey)(() => company_entity_1.Company),
     __metadata("design:type", company_entity_1.Company)
 ], Employee.prototype, "company", void 0);
 __decorate([

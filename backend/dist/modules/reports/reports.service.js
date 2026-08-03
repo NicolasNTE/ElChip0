@@ -89,7 +89,7 @@ let ReportsService = class ReportsService {
             const workDays = this.getBusinessDays(startDate, endDate);
             const attendedDays = this.getUniqueDaysAttended(attendanceRecords);
             const justifiedAbsenceDays = justifications.length;
-            const unjustifiedAbsenceDays = workDays - attendedDays - justifiedAbsenceDays;
+            const unjustifiedAbsenceDays = Math.max(0, workDays - attendedDays - justifiedAbsenceDays);
             payrollData.push({
                 employee: {
                     id: employee.id,
@@ -193,7 +193,9 @@ let ReportsService = class ReportsService {
     getUniqueDaysAttended(records) {
         const uniqueDays = new Set();
         records.forEach((record) => {
-            const dateStr = record.recordDate.toISOString().split('T')[0];
+            const dateStr = record.recordDate instanceof Date
+                ? record.recordDate.toISOString().split('T')[0]
+                : record.recordDate.slice(0, 10);
             uniqueDays.add(dateStr);
         });
         return uniqueDays.size;
