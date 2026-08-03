@@ -1,0 +1,16 @@
+{
+  "name": "elchip0",
+  "version": "1.0.0",
+  "description": "📍 Vivo en Surquillo, Lima – Perú   🎯 Apasionado por la gestión humana, el clima laboral y la transformación digital en entornos organizativos.   Me interesa cómo la tecnología puede potenciar la experiencia del empleado, optimizar procesos y generar decisiones más inteligentes.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:41729/git/NicolasNTE/ElChip0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
