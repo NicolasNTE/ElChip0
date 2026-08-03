@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { CompaniesModule } from './modules/companies/companies.module';
+import { EmployeesModule } from './modules/employees/employees.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -11,6 +14,9 @@ import { AppService } from './app.service';
       envFilePath: '.env',
     }),
     DatabaseModule,
+    AuthModule,
+    CompaniesModule,
+    EmployeesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
