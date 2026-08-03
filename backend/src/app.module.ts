@@ -6,6 +6,7 @@ import { CompaniesModule } from './modules/companies/companies.module';
 import { EmployeesModule } from './modules/employees/employees.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { JustificationsModule } from './modules/justifications/justifications.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -21,6 +22,7 @@ import { AppService } from './app.service';
     EmployeesModule,
     AttendanceModule,
     JustificationsModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
