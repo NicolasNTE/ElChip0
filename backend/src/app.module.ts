@@ -5,6 +5,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { EmployeesModule } from './modules/employees/employees.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
+import { JustificationsModule } from './modules/justifications/justifications.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -19,6 +20,7 @@ import { AppService } from './app.service';
     CompaniesModule,
     EmployeesModule,
     AttendanceModule,
+    JustificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
