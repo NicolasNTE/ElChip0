@@ -1,0 +1,15 @@
+{
+  "name": "sistema-actividades",
+  "version": "1.0.0",
+  "description": "Sistema de seguimiento de actividades de tres vistas sobre Google Sheets + Apps Script",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node local/servidor.mjs",
+    "reset": "rm -f local/datos.json && node local/servidor.mjs",
+    "push": "cd apps-script && clasp push"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,8 @@
+# Datos del entorno local: son de prueba y de cada quien.
+local/datos.json
+
+# Apunta a TU proyecto de Apps Script. Se copia de .clasp.json.ejemplo.
+apps-script/.clasp.json
+
+node_modules/
+.DS_Store

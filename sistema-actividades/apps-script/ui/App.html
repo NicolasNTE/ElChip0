@@ -1,0 +1,778 @@
+<script>
+/**
+ * App.html — Interfaz de las tres vistas.
+ *
+ * Todo lo que se ve aquí sale de una sola llamada al servidor por vista.
+ * El navegador nunca decide qué puede ver o editar alguien: eso ya viene
+ * resuelto desde el servidor en `permisos` y en `editables` de cada fila.
+ */
+(function () {
+  'use strict';
+
+  var TOKEN = document.body.dataset.token || '';
+  /** Nombres de columna: los define el servidor, no esta pantalla. */
+  var CAMPOS = {};
+  var ROLES = {};
+  var EST = {
+    boot: null,
+    mias: [],
+    todas: [],
+    indicadores: null,
+    excepciones: null,
+    vista: null,
+    abierta: null,
+  };
+
+  // ---------------------------------------------------------------- servidor
+
+  /** Envoltura de google.script.run como promesa. En local usa un stub. */
+  function llamar(accion, payload) {
+    var p = payload || {};
+    p.k = TOKEN;
+    if (window.__API_LOCAL__) return window.__API_LOCAL__(accion, p);
+    return new Promise(function (resolve, reject) {
+      google.script.run
+        .withSuccessHandler(function (r) {
+          if (!r) return reject(new Error('Respuesta vacía del servidor.'));
+          if (r.ok) return resolve(r.data);
+          reject(new Error(r.error));
+        })
+        .withFailureHandler(function (err) { reject(err); })
+        .api(accion, p);
+    });
+  }
+
+  // ------------------------------------------------------------------ utiles
+
+  function $(sel) { return document.querySelector(sel); }
+  function crear(tag, clase, texto) {
+    var el = document.createElement(tag);
+    if (clase) el.className = clase;
+    if (texto !== undefined && texto !== null) el.textContent = texto;
+    return el;
+  }
+  function vaciar(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+
+  var tiempoAviso = null;
+  function avisar(mensaje, tipo) {
+    var el = $('#aviso');
+    el.textContent = mensaje;
+    el.className = tipo || '';
+    el.style.display = 'block';
+    clearTimeout(tiempoAviso);
+    tiempoAviso = setTimeout(function () { el.style.display = 'none'; }, tipo === 'error' ? 7000 : 3500);
+  }
+
+  function llenarSelect(select, opciones, conservarPrimera) {
+    var valor = select.value;
+    var primera = conservarPrimera && select.options.length ? select.options[0].cloneNode(true) : null;
+    vaciar(select);
+    if (primera) select.appendChild(primera);
+    opciones.forEach(function (o) {
+      var op = crear('option', null, o);
+      op.value = o;
+      select.appendChild(op);
+    });
+    if (valor) select.value = valor;
+  }
+
+  function claseSemaforo(a) { return a.semaforo; }
+
+  function plural(n, singular, plural_) {
+    return n + ' ' + (Math.abs(n) === 1 ? singular : plural_);
+  }
+
+  function etiquetaSenal(s) {
+    if (s === 'Vencida') return 'rojo';
+    if (s === 'Riesgo/Interferencia') return 'rojo';
+    if (s === 'Espera Gerencia') return 'morado';
+    return 'ambar';
+  }
+
+  function barra(porcentaje) {
+    var cont = crear('div', 'barra-avance' + (porcentaje < 34 ? ' bajo' : porcentaje < 67 ? ' medio' : ''));
+    var i = crear('i');
+    i.style.width = Math.max(0, Math.min(100, porcentaje)) + '%';
+    cont.appendChild(i);
+    return cont;
+  }
+
+  // ------------------------------------------------------------------ arranque
+
+  function iniciar() {
+    llamar('bootstrap')
+      .then(function (boot) {
+        EST.boot = boot;
+        CAMPOS = boot.campos;
+        ROLES = boot.roles;
+        pintarIdentidad();
+        prepararCatalogos();
+        construirPestanas();
+        $('#cargando').style.display = 'none';
+        return recargarTodo();
+      })
+      .catch(pantallaError);
+  }
+
+  function pantallaError(err) {
+    var main = $('#contenido');
+    vaciar(main);
+    var caja = crear('div', 'pantalla-error');
+    caja.appendChild(crear('h2', null, 'No se pudo abrir el sistema'));
+    caja.appendChild(crear('p', null, (err && err.message) || String(err)));
+    main.appendChild(caja);
+  }
+
+  function pintarIdentidad() {
+    var u = EST.boot.usuario;
+    var el = $('#quien');
+    vaciar(el);
+    el.appendChild(crear('b', null, u.nombre || u.email));
+    el.appendChild(crear('span', null, u.rol));
+  }
+
+  function prepararCatalogos() {
+    var c = EST.boot.catalogos;
+    llenarSelect($('#n-proyecto'), c.proyecto);
+    llenarSelect($('#n-prioridad'), c.prioridad);
+    $('#n-prioridad').value = 'Media';
+    llenarSelect($('#f-mias-estado'), c.estado, true);
+    llenarSelect($('#f-mias-proyecto'), c.proyecto, true);
+    llenarSelect($('#f-todas-estado'), c.estado, true);
+    llenarSelect($('#f-todas-proyecto'), c.proyecto, true);
+
+    if (EST.boot.permisos.puedeAsignar) {
+      $('#campo-encargado').style.display = '';
+      llenarSelect($('#n-encargado'), c.encargados);
+      $('#n-encargado').value = EST.boot.usuario.nombre;
+      llenarSelect($('#f-todas-encargado'), c.encargados, true);
+    }
+  }
+
+  /** Las pestañas visibles dependen del rol: no se ofrece lo que no se puede ver. */
+  function construirPestanas() {
+    var p = EST.boot.permisos;
+    var rol = EST.boot.usuario.rol;
+    var nav = $('#pestanas');
+    var lista = [];
+
+    if (rol !== ROLES.GERENCIA) lista.push({ id: 'responsable', texto: 'Mis actividades' });
+    if (rol === ROLES.ADMIN) lista.push({ id: 'admin', texto: 'Administración' });
+    if (p.verTodo) lista.push({ id: 'gerencial', texto: 'Gerencial' });
+    if (p.puedeAdministrarAccesos) lista.push({ id: 'accesos', texto: 'Accesos' });
+
+    vaciar(nav);
+    lista.forEach(function (t) {
+      var b = crear('button', null, t.texto);
+      b.dataset.vista = t.id;
+      b.addEventListener('click', function () { mostrarVista(t.id); });
+      nav.appendChild(b);
+    });
+
+    var pedida = document.body.dataset.vista;
+    var inicial = lista.filter(function (t) { return t.id === pedida; })[0];
+    mostrarVista(inicial ? inicial.id : lista[0].id);
+  }
+
+  function mostrarVista(id) {
+    EST.vista = id;
+    ['responsable', 'admin', 'gerencial', 'accesos'].forEach(function (v) {
+      var sec = document.getElementById('vista-' + v);
+      if (sec) sec.classList.toggle('activa', v === id);
+    });
+    Array.prototype.forEach.call($('#pestanas').children, function (b) {
+      b.classList.toggle('activa', b.dataset.vista === id);
+    });
+    if (id === 'accesos') cargarPersonas();
+  }
+
+  /** Una recarga completa tras cualquier escritura: nadie ve datos viejos. */
+  function recargarTodo() {
+    var tareas = [cargarMias()];
+    if (EST.boot.permisos.verTodo) tareas.push(cargarConsolidado());
+    return Promise.all(tareas).catch(function (err) { avisar(err.message, 'error'); });
+  }
+
+  // ------------------------------------------------- VISTA 1 — RESPONSABLE
+
+  function filtrosMias() {
+    return {
+      soloMias: true,
+      estado: $('#f-mias-estado').value,
+      proyecto: $('#f-mias-proyecto').value,
+      senal: $('#f-mias-senal').value,
+      soloAbiertas: $('#f-mias-abiertas').checked,
+      texto: $('#f-mias-texto').value,
+    };
+  }
+
+  function cargarMias() {
+    if (EST.boot.usuario.rol === ROLES.GERENCIA) return Promise.resolve();
+    return llamar('listar', { filtro: filtrosMias() }).then(function (r) {
+      EST.mias = r.actividades;
+      pintarKpis($('#kpis-mias'), r.resumen, ['abiertas', 'vencidas', 'porVencer', 'riesgo', 'bloqueos']);
+      $('#cuenta-mias').textContent = r.actividades.length;
+      pintarTabla($('#tabla-mias'), r.actividades, { mostrarEncargado: false });
+    });
+  }
+
+  function crearActividad() {
+    var entrada = {
+      actividad: $('#n-actividad').value,
+      proyecto: $('#n-proyecto').value,
+      fechaLimite: $('#n-fecha').value,
+      prioridad: $('#n-prioridad').value,
+      comentario: $('#n-comentario').value,
+    };
+    if (EST.boot.permisos.puedeAsignar) entrada.encargado = $('#n-encargado').value;
+    if (!entrada.actividad.trim()) return avisar('Escribe qué hay que hacer.', 'error');
+
+    $('#btn-crear').disabled = true;
+    llamar('crear', { actividad: entrada })
+      .then(function () {
+        $('#n-actividad').value = '';
+        $('#n-comentario').value = '';
+        $('#n-fecha').value = '';
+        avisar('Actividad creada.', 'ok');
+        return recargarTodo();
+      })
+      .catch(function (err) { avisar(err.message, 'error'); })
+      .then(function () { $('#btn-crear').disabled = false; });
+  }
+
+  // ------------------------------------------------ VISTA 2 — ADMINISTRACIÓN
+
+  function filtrosTodas() {
+    return {
+      encargado: $('#f-todas-encargado').value,
+      proyecto: $('#f-todas-proyecto').value,
+      estado: $('#f-todas-estado').value,
+      senal: $('#f-todas-senal').value,
+      soloAbiertas: $('#f-todas-abiertas').checked,
+      texto: $('#f-todas-texto').value,
+    };
+  }
+
+  function cargarConsolidado() {
+    var esAdmin = EST.boot.usuario.rol === ROLES.ADMIN;
+    var tareas = [llamar('indicadores')];
+    if (esAdmin) {
+      tareas.push(llamar('excepciones'));
+      tareas.push(llamar('listar', { filtro: filtrosTodas() }));
+    }
+    return Promise.all(tareas).then(function (res) {
+      EST.indicadores = res[0];
+      pintarGerencial(res[0]);
+      if (!esAdmin) return;
+      EST.excepciones = res[1];
+      pintarExcepciones(res[1]);
+      EST.todas = res[2].actividades;
+      pintarKpis($('#kpis-admin'), res[2].resumen, ['abiertas', 'vencidas', 'riesgo', 'bloqueos', 'desactualizadas', 'sinFecha']);
+      $('#cuenta-todas').textContent = res[2].actividades.length;
+      pintarTabla($('#tabla-todas'), res[2].actividades, { mostrarEncargado: true });
+      pintarCumplimiento($('#tabla-cumplimiento'), res[0].responsables, true);
+    });
+  }
+
+  function pintarExcepciones(exc) {
+    var cont = $('#excepciones');
+    vaciar(cont);
+    var bloques = [
+      ['Vencidas', exc.vencidas, 'rojo'],
+      ['Esperando a Gerencia', exc.bloqueos, 'morado'],
+      ['En riesgo o interferencia', exc.riesgo, 'rojo'],
+      ['Sin actualizar', exc.desactualizadas, 'ambar'],
+      ['Por vencer', exc.porVencer, 'ambar'],
+      ['Sin fecha límite', exc.sinFecha, 'ambar'],
+    ];
+    var hayAlgo = false;
+    bloques.forEach(function (b) {
+      if (!b[1].length) return;
+      hayAlgo = true;
+      var h = crear('h4');
+      h.style.cssText = 'margin:14px 0 6px;font-size:14px';
+      h.appendChild(crear('span', 'tag ' + b[2], b[0] + ' · ' + b[1].length));
+      cont.appendChild(h);
+      var caja = crear('div', 'tabla-envoltura');
+      cont.appendChild(caja);
+      pintarTabla(caja, b[1], { mostrarEncargado: true, compacta: true });
+    });
+    if (!hayAlgo) cont.appendChild(crear('div', 'vacio', 'Sin excepciones. Todo al día.'));
+  }
+
+  function pintarCumplimiento(cont, responsables, conAcciones) {
+    vaciar(cont);
+    if (!responsables.length) return cont.appendChild(crear('div', 'vacio', 'Sin datos.'));
+    var cols = ['Responsable', 'Abiertas', 'Vencidas', 'Riesgo', 'Espera Gerencia', 'Sin actualizar', 'Cumplimiento', 'Avance'];
+    if (conAcciones) cols.push('');
+    var tabla = tablaBase(cols);
+    var cuerpo = tabla.tBodies[0];
+
+    responsables.forEach(function (r) {
+      var tr = crear('tr');
+      tr.appendChild(crear('td', null, r.responsable));
+      tr.appendChild(crear('td', null, String(r.abiertas)));
+      tr.appendChild(celdaNumero(r.vencidas, 'rojo'));
+      tr.appendChild(celdaNumero(r.riesgo, 'rojo'));
+      tr.appendChild(celdaNumero(r.bloqueos, 'morado'));
+      tr.appendChild(celdaNumero(r.desactualizadas, 'ambar'));
+
+      var tdC = crear('td');
+      tdC.appendChild(crear('span', 'tag ' + (r.cumplimiento >= 80 ? 'verde' : r.cumplimiento >= 50 ? 'ambar' : 'rojo'), r.cumplimiento + '%'));
+      tr.appendChild(tdC);
+
+      var tdA = crear('td');
+      tdA.appendChild(barra(r.avance));
+      tdA.appendChild(crear('div', 'meta', r.avance + '%'));
+      tr.appendChild(tdA);
+
+      if (conAcciones) {
+        var tdB = crear('td');
+        if (r.email) {
+          var btn = crear('button', 'btn claro chico', 'Escalar');
+          btn.title = 'Enviar un recordatorio con sus pendientes críticos';
+          btn.addEventListener('click', function () { escalar(r); });
+          tdB.appendChild(btn);
+        }
+        tr.appendChild(tdB);
+      }
+      cuerpo.appendChild(tr);
+    });
+    cont.appendChild(tabla);
+  }
+
+  function celdaNumero(n, color) {
+    var td = crear('td');
+    if (n > 0) td.appendChild(crear('span', 'tag ' + color, String(n)));
+    else td.appendChild(crear('span', 'tag gris', '0'));
+    return td;
+  }
+
+  function escalar(r) {
+    var mensaje = window.prompt(
+      'Mensaje para ' + r.responsable + ' (se enviará junto con su lista de pendientes críticos):',
+      'Por favor actualiza el estado de tus actividades hoy.'
+    );
+    if (mensaje === null) return;
+    llamar('recordatorio', { email: r.email, mensaje: mensaje })
+      .then(function (res) { avisar('Recordatorio enviado a ' + res.enviado + ' (' + res.actividades + ' actividades).', 'ok'); })
+      .catch(function (err) { avisar(err.message, 'error'); });
+  }
+
+  // --------------------------------------------------- VISTA 3 — GERENCIAL
+
+  function pintarGerencial(ind) {
+    pintarKpis($('#kpis-gerencia'), ind.global, ['avance', 'abiertas', 'vencidas', 'riesgo', 'bloqueos']);
+    pintarDecisiones(ind.decisiones || []);
+    pintarProyectos(ind.proyectos);
+    pintarCumplimiento($('#tabla-gerencia-responsables'), ind.responsables, false);
+  }
+
+  function pintarDecisiones(cola) {
+    var cont = $('#tabla-decisiones');
+    $('#cuenta-decisiones').textContent = cola.length;
+    vaciar(cont);
+    if (!cola.length) {
+      return cont.appendChild(crear('div', 'vacio', 'Nada esperando decisión de Gerencia.'));
+    }
+    var puedeCerrar = EST.boot.usuario.rol === ROLES.GERENCIA || EST.boot.usuario.rol === ROLES.ADMIN;
+    var tabla = tablaBase(['Proyecto', 'Actividad', 'Qué se decide', 'Encargado', 'Esperando', puedeCerrar ? '' : 'Fecha límite']);
+    var cuerpo = tabla.tBodies[0];
+
+    cola.forEach(function (d) {
+      var tr = crear('tr');
+      if (d.critico) tr.className = 'rojo';
+      tr.appendChild(crear('td', null, d.proyecto));
+      tr.appendChild(crear('td', 'actividad', d.actividad));
+      tr.appendChild(crear('td', null, d.decision));
+      tr.appendChild(crear('td', null, d.encargado));
+
+      var tdD = crear('td');
+      tdD.appendChild(crear('span', 'tag ' + (d.critico ? 'rojo' : 'ambar'),
+        d.diasEsperando === null ? '—' : plural(d.diasEsperando, 'día', 'días')));
+      tr.appendChild(tdD);
+
+      var tdU = crear('td');
+      if (puedeCerrar) {
+        var btn = crear('button', 'btn chico', 'Registrar decisión');
+        btn.addEventListener('click', function () { resolverDecision(d); });
+        tdU.appendChild(btn);
+      } else {
+        tdU.textContent = d.fechaLimite || '—';
+      }
+      tr.appendChild(tdU);
+      cuerpo.appendChild(tr);
+    });
+    cont.appendChild(tabla);
+  }
+
+  function resolverDecision(d) {
+    var respuesta = window.prompt('Decisión sobre: ' + d.actividad + '\n\nEscríbela; quedará registrada en la actividad con fecha.');
+    if (!respuesta) return;
+    llamar('resolverDecision', { id: d.id, respuesta: respuesta })
+      .then(function () {
+        avisar('Decisión registrada. El bloqueo se levantó.', 'ok');
+        return recargarTodo();
+      })
+      .catch(function (err) { avisar(err.message, 'error'); });
+  }
+
+  function pintarProyectos(proyectos) {
+    var cont = $('#tabla-proyectos');
+    vaciar(cont);
+    if (!proyectos.length) return cont.appendChild(crear('div', 'vacio', 'Sin proyectos con actividades.'));
+    var tabla = tablaBase(['Proyecto', 'Avance', 'Actividades', 'Por hacer', 'En curso', 'Finalizadas', 'Vencidas', 'Riesgo', 'Espera Gerencia']);
+    var cuerpo = tabla.tBodies[0];
+    proyectos.forEach(function (p) {
+      var tr = crear('tr');
+      tr.appendChild(crear('td', null, p.proyecto));
+      var tdA = crear('td');
+      tdA.appendChild(barra(p.avance));
+      tdA.appendChild(crear('div', 'meta', p.avance + '%'));
+      tr.appendChild(tdA);
+      tr.appendChild(crear('td', null, String(p.total)));
+      tr.appendChild(crear('td', null, String(p.porHacer)));
+      tr.appendChild(crear('td', null, String(p.enCurso)));
+      tr.appendChild(crear('td', null, String(p.finalizadas)));
+      tr.appendChild(celdaNumero(p.vencidas, 'rojo'));
+      tr.appendChild(celdaNumero(p.riesgo, 'rojo'));
+      tr.appendChild(celdaNumero(p.bloqueos, 'morado'));
+      cuerpo.appendChild(tr);
+    });
+    cont.appendChild(tabla);
+  }
+
+  // ------------------------------------------------------------- ACCESOS
+
+  function cargarPersonas() {
+    llamar('personas')
+      .then(function (personas) {
+        var cont = $('#tabla-personas');
+        vaciar(cont);
+        var tabla = tablaBase(['Nombre', 'Correo', 'Rol', 'Estado', 'Enlace personal', '']);
+        var cuerpo = tabla.tBodies[0];
+        personas.forEach(function (p) {
+          var tr = crear('tr');
+          tr.appendChild(crear('td', null, p.nombre));
+          tr.appendChild(crear('td', null, p.email));
+          tr.appendChild(crear('td', null, p.rol));
+          var tdE = crear('td');
+          tdE.appendChild(crear('span', 'tag ' + (p.activo ? 'verde' : 'gris'), p.activo ? 'Activo' : 'Inactivo'));
+          tr.appendChild(tdE);
+          var tdL = crear('td');
+          tdL.appendChild(crear('span', 'tag ' + (p.tieneEnlace ? 'verde' : 'gris'), p.tieneEnlace ? 'Generado' : 'Sin enlace'));
+          tr.appendChild(tdL);
+          var tdB = crear('td');
+          var gen = crear('button', 'btn claro chico', p.tieneEnlace ? 'Regenerar' : 'Generar');
+          gen.addEventListener('click', function () { generarEnlace(p); });
+          tdB.appendChild(gen);
+          if (p.tieneEnlace) {
+            var rev = crear('button', 'btn claro chico', 'Revocar');
+            rev.style.marginLeft = '6px';
+            rev.addEventListener('click', function () { revocarEnlace(p); });
+            tdB.appendChild(rev);
+          }
+          tr.appendChild(tdB);
+          cuerpo.appendChild(tr);
+        });
+        cont.appendChild(tabla);
+      })
+      .catch(function (err) { avisar(err.message, 'error'); });
+  }
+
+  function generarEnlace(p) {
+    if (!window.confirm('Se generará un enlace nuevo para ' + p.nombre + '. El anterior dejará de funcionar. ¿Continuar?')) return;
+    llamar('generarEnlace', { email: p.email })
+      .then(function (r) {
+        window.prompt('Copia este enlace y envíaselo a ' + r.nombre + ' por privado.\nNo se puede volver a mostrar.', r.url);
+        cargarPersonas();
+      })
+      .catch(function (err) { avisar(err.message, 'error'); });
+  }
+
+  function revocarEnlace(p) {
+    if (!window.confirm('Revocar el acceso de ' + p.nombre + '?')) return;
+    llamar('revocarEnlace', { email: p.email })
+      .then(function () { avisar('Acceso revocado.', 'ok'); cargarPersonas(); })
+      .catch(function (err) { avisar(err.message, 'error'); });
+  }
+
+  // ------------------------------------------------------- tabla y detalle
+
+  function tablaBase(columnas) {
+    var t = crear('table', 'datos');
+    var thead = crear('thead');
+    var tr = crear('tr');
+    columnas.forEach(function (c) { tr.appendChild(crear('th', null, c)); });
+    thead.appendChild(tr);
+    t.appendChild(thead);
+    t.appendChild(crear('tbody'));
+    return t;
+  }
+
+  function pintarKpis(cont, resumen, claves) {
+    var etiquetas = {
+      total: ['Actividades', ''],
+      abiertas: ['Abiertas', ''],
+      avance: ['Avance global', 'verde'],
+      vencidas: ['Vencidas', 'rojo'],
+      porVencer: ['Por vencer', 'ambar'],
+      riesgo: ['En riesgo', 'rojo'],
+      bloqueos: ['Espera Gerencia', 'morado'],
+      desactualizadas: ['Sin actualizar', 'ambar'],
+      sinFecha: ['Sin fecha', 'ambar'],
+    };
+    vaciar(cont);
+    claves.forEach(function (k) {
+      var def = etiquetas[k] || [k, ''];
+      var caja = crear('div', 'kpi ' + def[1]);
+      caja.appendChild(crear('div', 'n', k === 'avance' ? resumen[k] + '%' : String(resumen[k])));
+      caja.appendChild(crear('div', 't', def[0]));
+      cont.appendChild(caja);
+    });
+  }
+
+  function pintarTabla(cont, actividades, opciones) {
+    var op = opciones || {};
+    vaciar(cont);
+    if (!actividades.length) {
+      return cont.appendChild(crear('div', 'vacio', 'No hay actividades con estos filtros.'));
+    }
+    var cols = ['Proyecto', 'Actividad'];
+    if (op.mostrarEncargado) cols.push('Encargado');
+    cols = cols.concat(['Fecha límite', 'Estado', 'Prioridad', 'Señales', '']);
+
+    var tabla = tablaBase(cols);
+    var cuerpo = tabla.tBodies[0];
+
+    actividades.forEach(function (a) {
+      var tr = crear('tr', claseSemaforo(a) + (a.cerrada ? ' cerrada' : ''));
+
+      tr.appendChild(crear('td', null, a.proyecto));
+
+      var tdAct = crear('td', 'actividad');
+      tdAct.appendChild(crear('div', null, a.actividad));
+      if (a.comentario) tdAct.appendChild(crear('div', 'meta', a.comentario));
+      tr.appendChild(tdAct);
+
+      if (op.mostrarEncargado) tr.appendChild(crear('td', null, a.encargado || '—'));
+
+      var tdF = crear('td');
+      tdF.appendChild(crear('div', null, a.fechaLimite || '—'));
+      if (!a.cerrada && a.diasParaVencer !== null) {
+        tdF.appendChild(crear('div', 'meta',
+          a.diasParaVencer < 0 ? plural(Math.abs(a.diasParaVencer), 'día tarde', 'días tarde')
+            : a.diasParaVencer === 0 ? 'vence hoy'
+            : 'en ' + plural(a.diasParaVencer, 'día', 'días')));
+      }
+      tr.appendChild(tdF);
+
+      // Estado: editable en línea si el rol lo permite. Es el gesto más común.
+      var tdE = crear('td');
+      if (a.editables.indexOf(CAMPOS.ESTADO) >= 0) {
+        var sel = crear('select', 'inline');
+        EST.boot.catalogos.estado.forEach(function (e) {
+          var op2 = crear('option', null, e);
+          op2.value = e;
+          sel.appendChild(op2);
+        });
+        sel.value = a.estado;
+        sel.addEventListener('change', function () {
+          var cambio = {};
+          cambio[CAMPOS.ESTADO] = sel.value;
+          guardar(a.id, cambio, sel);
+        });
+        tdE.appendChild(sel);
+      } else {
+        tdE.textContent = a.estado;
+      }
+      tr.appendChild(tdE);
+
+      tr.appendChild(crear('td', null, a.prioridad));
+
+      var tdS = crear('td');
+      a.senales.forEach(function (s) { tdS.appendChild(crear('span', 'tag ' + etiquetaSenal(s), s)); });
+      if (!a.senales.length) tdS.appendChild(crear('span', 'tag verde', 'Al día'));
+      tr.appendChild(tdS);
+
+      var tdD = crear('td');
+      var btn = crear('button', 'btn claro chico', 'Abrir');
+      btn.addEventListener('click', function () { abrirDetalle(a); });
+      tdD.appendChild(btn);
+      tr.appendChild(tdD);
+
+      cuerpo.appendChild(tr);
+    });
+    cont.appendChild(tabla);
+  }
+
+  function guardar(id, cambios, control) {
+    if (control) control.disabled = true;
+    return llamar('actualizar', { id: id, cambios: cambios })
+      .then(function () {
+        avisar('Guardado.', 'ok');
+        return recargarTodo();
+      })
+      .catch(function (err) {
+        avisar(err.message, 'error');
+        return recargarTodo();
+      })
+      .then(function () { if (control) control.disabled = false; });
+  }
+
+  // ---- Panel de detalle: aquí se edita todo lo que el rol permita ----
+
+  function abrirDetalle(a) {
+    EST.abierta = a;
+    var cont = $('#detalle-cuerpo');
+    vaciar(cont);
+
+    cont.appendChild(crear('h3', null, a.actividad));
+    var meta = crear('p', 'meta', a.proyecto + ' · ' + (a.encargado || 'sin encargado') + ' · ' + a.id);
+    cont.appendChild(meta);
+
+    var senales = crear('div');
+    a.senales.forEach(function (s) { senales.appendChild(crear('span', 'tag ' + etiquetaSenal(s), s)); });
+    cont.appendChild(senales);
+
+    var form = crear('div', 'formulario');
+    form.style.marginTop = '16px';
+    var controles = {};
+
+    function campo(etiqueta, cabecera, tipo, opciones, valor, ancho) {
+      var puede = a.editables.indexOf(cabecera) >= 0;
+      var caja = crear('div', 'campo' + (ancho ? ' ancho' : ''));
+      caja.appendChild(crear('label', null, etiqueta));
+      var el;
+      if (tipo === 'select') {
+        el = crear('select');
+        opciones.forEach(function (o) {
+          var op = crear('option', null, o);
+          op.value = o;
+          el.appendChild(op);
+        });
+        el.value = valor || opciones[0];
+      } else if (tipo === 'textarea') {
+        el = crear('textarea');
+        el.value = valor || '';
+      } else {
+        el = crear('input');
+        el.type = tipo;
+        el.value = valor || '';
+      }
+      el.disabled = !puede;
+      caja.appendChild(el);
+      form.appendChild(caja);
+      if (puede) controles[cabecera] = el;
+      return el;
+    }
+
+    var c = EST.boot.catalogos;
+    var encargados = c.encargados.indexOf(a.encargado) >= 0 ? c.encargados : [a.encargado].concat(c.encargados);
+    campo('Proyecto', CAMPOS.PROYECTO, 'select', c.proyecto, a.proyecto);
+    campo('Encargado', CAMPOS.ENCARGADO, 'select', encargados, a.encargado);
+    campo('Fecha límite', CAMPOS.FECHA_LIMITE, 'date', null, a.fechaLimite);
+    campo('Prioridad', CAMPOS.PRIORIDAD, 'select', c.prioridad, a.prioridad);
+    campo('Estado', CAMPOS.ESTADO, 'select', c.estado, a.estado);
+    campo('Descripción', CAMPOS.ACTIVIDAD, 'text', null, a.actividad, true);
+    campo('¿Riesgo o interferencia?', CAMPOS.RIESGO, 'select', c.siNo, a.riesgo);
+    campo('¿Espera decisión de Gerencia?', CAMPOS.BLOQUEO, 'select', c.siNo, a.bloqueo);
+    campo('Detalle del riesgo', CAMPOS.RIESGO_DETALLE, 'textarea', null, a.riesgoDetalle, true);
+    campo('Qué debe decidir Gerencia', CAMPOS.DECISION, 'textarea', null, a.decision, true);
+    campo('Comentario', CAMPOS.COMENTARIO, 'textarea', null, a.comentario, true);
+
+    cont.appendChild(form);
+
+    if (Object.keys(controles).length) {
+      var acciones = crear('div');
+      acciones.style.marginTop = '14px';
+      var btnG = crear('button', 'btn', 'Guardar cambios');
+      btnG.addEventListener('click', function () {
+        var cambios = {};
+        Object.keys(controles).forEach(function (cab) { cambios[cab] = controles[cab].value; });
+        btnG.disabled = true;
+        guardar(a.id, cambios, null).then(function () {
+          btnG.disabled = false;
+          cerrarDetalle();
+        });
+      });
+      acciones.appendChild(btnG);
+      cont.appendChild(acciones);
+    } else {
+      cont.appendChild(crear('p', 'meta', 'Tu rol puede consultar esta actividad, pero no modificarla.'));
+    }
+
+    var hist = crear('div');
+    hist.style.marginTop = '22px';
+    hist.appendChild(crear('h4', null, 'Historial'));
+    var lista = crear('ul', 'historial');
+    lista.appendChild(crear('li', null, 'Cargando…'));
+    hist.appendChild(lista);
+    cont.appendChild(hist);
+
+    llamar('historial', { id: a.id })
+      .then(function (mov) {
+        vaciar(lista);
+        if (!mov.length) return lista.appendChild(crear('li', null, 'Sin movimientos registrados.'));
+        mov.forEach(function (m) {
+          var li = crear('li');
+          li.appendChild(crear('div', null, m.campo + ': ' + (m.anterior || '—') + ' → ' + (m.nuevo || '—')));
+          li.appendChild(crear('div', 'meta', m.fecha + ' · ' + m.actor));
+          lista.appendChild(li);
+        });
+      })
+      .catch(function () { vaciar(lista); lista.appendChild(crear('li', null, 'No se pudo cargar el historial.')); });
+
+    $('#detalle').classList.add('abierto');
+  }
+
+  function cerrarDetalle() {
+    $('#detalle').classList.remove('abierto');
+    EST.abierta = null;
+  }
+
+  // ------------------------------------------------------------- escuchas
+
+  function conRebote(fn, ms) {
+    var t = null;
+    return function () {
+      clearTimeout(t);
+      t = setTimeout(fn, ms || 350);
+    };
+  }
+
+  function conectar() {
+    $('#btn-crear').addEventListener('click', crearActividad);
+    $('#btn-toggle-alta').addEventListener('click', function () {
+      var caja = $('#alta-caja');
+      var abierto = caja.style.display !== 'none';
+      caja.style.display = abierto ? 'none' : '';
+      this.textContent = abierto ? 'Mostrar' : 'Ocultar';
+      if (!abierto) $('#n-actividad').focus();
+    });
+
+    ['#f-mias-estado', '#f-mias-proyecto', '#f-mias-senal', '#f-mias-abiertas'].forEach(function (s) {
+      $(s).addEventListener('change', function () { cargarMias().catch(function (e) { avisar(e.message, 'error'); }); });
+    });
+    $('#f-mias-texto').addEventListener('input', conRebote(function () { cargarMias(); }));
+
+    ['#f-todas-encargado', '#f-todas-proyecto', '#f-todas-estado', '#f-todas-senal', '#f-todas-abiertas'].forEach(function (s) {
+      $(s).addEventListener('change', function () { cargarConsolidado().catch(function (e) { avisar(e.message, 'error'); }); });
+    });
+    $('#f-todas-texto').addEventListener('input', conRebote(function () { cargarConsolidado(); }));
+
+    $('#detalle-cerrar').addEventListener('click', cerrarDetalle);
+    $('#detalle').addEventListener('click', function (ev) { if (ev.target === this) cerrarDetalle(); });
+    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') cerrarDetalle(); });
+  }
+
+  // Se arranca cuando el documento está completo: en modo local el puente
+  // hacia el servidor se inyecta al final del body.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { conectar(); iniciar(); });
+  } else {
+    conectar();
+    iniciar();
+  }
+})();
+</script>
