@@ -84,7 +84,8 @@ function apiBootstrap(usuario) {
 /** Actividades visibles para este usuario, ya ordenadas para trabajar. */
 function apiListar(usuario, p) {
   const filtro = p.filtro || {};
-  var lista = todasLasActividades().filter(function (a) { return puedeVer(usuario, a); });
+  const visibles = todasLasActividades().filter(function (a) { return puedeVer(usuario, a); });
+  var lista = visibles;
 
   // "Mis actividades" siempre significa MÍAS, incluso para Administración,
   // que en su otra vista sí ve todo.
@@ -108,6 +109,11 @@ function apiListar(usuario, p) {
   if (filtro.senal) {
     lista = lista.filter(function (a) { return a.senales.indexOf(filtro.senal) >= 0; });
   }
+  // Las etiquetas son libres, no un catálogo: cualquiera pudo haber creado
+  // "Fase 1" en Cristobal y "Fase 1" en Madreselva; el filtro es literal.
+  if (filtro.etiqueta) {
+    lista = lista.filter(function (a) { return a.etiquetas.indexOf(filtro.etiqueta) >= 0; });
+  }
   if (filtro.texto) {
     const q = String(filtro.texto).toLowerCase();
     lista = lista.filter(function (a) {
@@ -126,6 +132,9 @@ function apiListar(usuario, p) {
   return {
     actividades: ordenadas,
     resumen: calcularIndicadores(ordenadas).global,
+    // El universo de etiquetas sale de lo VISIBLE, no de lo ya filtrado:
+    // así no desaparecen del desplegable en cuanto filtras por una de ellas.
+    etiquetas: listarEtiquetas(visibles),
   };
 }
 
@@ -142,6 +151,7 @@ function apiCrear(usuario, p) {
   const parche = {};
   parche[C.PROYECTO] = entrada.proyecto;
   parche[C.ACTIVIDAD] = entrada.actividad;
+  parche[C.ETIQUETAS] = entrada.etiquetas || '';
   parche[C.ENCARGADO] = encargado;
   parche[C.PRIORIDAD] = entrada.prioridad || DEFAULTS.PRIORIDAD;
   parche[C.ESTADO] = entrada.estado || DEFAULTS.ESTADO;
@@ -225,6 +235,7 @@ function _valorActual(actividad, cabecera) {
   const mapa = {};
   mapa[C.PROYECTO] = actividad.proyecto;
   mapa[C.ACTIVIDAD] = actividad.actividad;
+  mapa[C.ETIQUETAS] = actividad.etiquetasTexto;
   mapa[C.ENCARGADO] = actividad.encargado;
   mapa[C.FECHA_LIMITE] = actividad.fechaLimite;
   mapa[C.PRIORIDAD] = actividad.prioridad;

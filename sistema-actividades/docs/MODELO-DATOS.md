@@ -14,6 +14,7 @@ Una fila = una actividad. **Nunca** se borran filas: se pasan a estado
 | `ID` | El sistema | Inmutable. Es lo que enlaza la actividad con su bitácora |
 | `Proyecto` | Administración / Responsable | Debe existir en la hoja `Catalogos` |
 | `Actividad` | Administración / Responsable | Qué hay que hacer, en una línea. Máx. 500 caracteres |
+| `Etiquetas` | Cualquiera con permiso (los tres roles) | Libre, separadas por coma. Agrupa tareas de un mismo proyecto para poder filtrarlas; no es un catálogo cerrado, se escribe según haga falta |
 | `Encargado` | Administración | **Nombre** exacto de la hoja `Personas`. Un responsable no puede cambiarlo |
 | `Fecha limite` | Administración / Responsable | Sin fecha, la actividad no se puede exigir: el sistema la marca `Sin fecha límite` |
 | `Prioridad` | Administración | `Alta` · `Media` · `Baja` |

@@ -48,7 +48,7 @@ function _cabecerasMadre() {
   const C = CONFIG.COLS;
   // Orden pensado para que Administración trabaje cómoda en el Sheet.
   return [
-    C.ID, C.PROYECTO, C.ACTIVIDAD, C.ENCARGADO, C.FECHA_LIMITE, C.PRIORIDAD,
+    C.ID, C.PROYECTO, C.ACTIVIDAD, C.ETIQUETAS, C.ENCARGADO, C.FECHA_LIMITE, C.PRIORIDAD,
     C.ESTADO, C.RIESGO, C.RIESGO_DETALLE, C.BLOQUEO, C.DECISION, C.COMENTARIO,
     C.CREADO_POR, C.CREADO_EN, C.ACTUALIZADO_POR, C.ACTUALIZADO_EN,
   ];
@@ -239,27 +239,28 @@ function cargarEjemplo() {
     return d;
   };
 
-  // La última columna es hace cuántos días se tocó por última vez: así el
-  // ejemplo muestra "sin actualizar" como una señal real y no como ruido.
+  // El penúltimo valor son etiquetas de ejemplo (grupos dentro del proyecto);
+  // el último es hace cuántos días se tocó por última vez, así el ejemplo
+  // muestra "sin actualizar" como una señal real y no como ruido.
   const muestras = [
-    ['Cristobal', 'Revisar planos de fachada', 'Mafer', dia(8), 'Alta', 'Por hacer', 'No', '', 'No', '', '', 2],
-    ['Madreselva', 'Coordinar con proveedor de acabados', 'Mafer', dia(1), 'Alta', 'Por hacer', 'Si', 'El proveedor no confirma stock', 'No', '', '', 1],
-    ['Bellaterra', 'Aprobar cambio de presupuesto de obra', 'Renato', dia(11), 'Media', 'En curso', 'No', '', 'Si', 'Aprobar sobrecosto de 12k', '', 6],
-    ['Cristobal', 'Firma de Minuta de Compra Venta', 'Nicolas', dia(17), 'Alta', 'Por hacer', 'No', '', 'No', '', 'Confirmar detalles para firma', 3],
-    ['Cristobal', 'Escritura publica', 'Nicolas', dia(83), 'Alta', 'Por hacer', 'No', '', 'No', '', 'Depende de la firma de la minuta', 3],
-    ['Cristobal', 'Empresa para siguiente proyecto - Crear empresa', 'Ingrid', dia(-26), 'Alta', 'Finalizado', 'No', '', 'No', '', 'Se entregaron la declaracion de bienes', 26],
-    ['Cristobal', 'Devolucion Sandro - Ultimo dia de cada mes', 'Salvador', dia(-35), 'Baja', 'Por hacer', 'No', '', 'No', '', '', 33],
-    ['Cristobal', 'Expediente para MTC - Seguimiento', 'Ingrid', dia(-21), 'Media', 'Finalizado', 'No', '', 'No', '', 'Rafael debe tener plano topografico', 20],
-    ['Cristobal', 'Respuesta al MTC sobre las observaciones', 'Ailin', dia(-18), 'Alta', 'En curso', 'No', '', 'No', '', 'Proceso de conseguir todos los requisitos', 4],
-    ['Cristobal', 'Resolver tarjeta de credito interbank', 'Ailin', dia(-21), 'Alta', 'En curso', 'No', '', 'No', '', 'Falta ir al banco presencialmente', 15],
-    ['Cristobal', 'Solucion Observaciones', 'Rafael J.', dia(107), 'Alta', 'En curso', 'No', '', 'No', '', '', 5],
-    ['Cristobal', 'Plazo Observaciones', 'Ingrid', dia(-1), 'Alta', 'En curso', 'No', '', 'No', '', '', 1],
-    ['Cristobal', 'Entregar Planos firmados y plteados - Archivar', 'Mafer', dia(-50), 'Alta', 'Finalizado', 'No', '', 'No', '', 'En coordinacion con Bruno', 48],
-    ['Cristobal', 'Sellado Aprobacion Munic - Ingresar solicitud', 'Mafer', '', 'Alta', 'Por hacer', 'No', '', 'No', '', '', 4],
-    ['Cristobal', 'Licencia de Obra - Cotizaciones', 'Rafael J.', '', 'Alta', 'Por hacer', 'No', '', 'No', '', '', 9],
-    ['Cristobal', 'Cotizacion Electricas', 'Rafael J.', '', 'Media', 'Por hacer', 'No', '', 'No', '', '', 12],
-    ['Cristobal', 'Reclutar estudio de proyectistas', 'Renato', '', 'Media', 'Por hacer', 'No', '', 'No', '', '', 2],
-    ['Cristobal', 'Creacion de empresa Madretierra SAC - Minuta', 'Mafer', '', 'Alta', 'Por hacer', 'No', '', 'Si', 'Definir socios y aportes', '', 8],
+    ['Cristobal', 'Revisar planos de fachada', 'Mafer', dia(8), 'Alta', 'Por hacer', 'No', '', 'No', '', '', 'Fase 1 - Diseño', 2],
+    ['Madreselva', 'Coordinar con proveedor de acabados', 'Mafer', dia(1), 'Alta', 'Por hacer', 'Si', 'El proveedor no confirma stock', 'No', '', '', 'Acabados', 1],
+    ['Bellaterra', 'Aprobar cambio de presupuesto de obra', 'Renato', dia(11), 'Media', 'En curso', 'No', '', 'Si', 'Aprobar sobrecosto de 12k', '', '', 6],
+    ['Cristobal', 'Firma de Minuta de Compra Venta', 'Nicolas', dia(17), 'Alta', 'Por hacer', 'No', '', 'No', '', 'Confirmar detalles para firma', 'Legal', 3],
+    ['Cristobal', 'Escritura publica', 'Nicolas', dia(83), 'Alta', 'Por hacer', 'No', '', 'No', '', 'Depende de la firma de la minuta', 'Legal', 3],
+    ['Cristobal', 'Empresa para siguiente proyecto - Crear empresa', 'Ingrid', dia(-26), 'Alta', 'Finalizado', 'No', '', 'No', '', 'Se entregaron la declaracion de bienes', 'Legal', 26],
+    ['Cristobal', 'Devolucion Sandro - Ultimo dia de cada mes', 'Salvador', dia(-35), 'Baja', 'Por hacer', 'No', '', 'No', '', '', '', 33],
+    ['Cristobal', 'Expediente para MTC - Seguimiento', 'Ingrid', dia(-21), 'Media', 'Finalizado', 'No', '', 'No', '', 'Rafael debe tener plano topografico', 'Permisos MTC', 20],
+    ['Cristobal', 'Respuesta al MTC sobre las observaciones', 'Ailin', dia(-18), 'Alta', 'En curso', 'No', '', 'No', '', 'Proceso de conseguir todos los requisitos', 'Permisos MTC', 4],
+    ['Cristobal', 'Resolver tarjeta de credito interbank', 'Ailin', dia(-21), 'Alta', 'En curso', 'No', '', 'No', '', 'Falta ir al banco presencialmente', '', 15],
+    ['Cristobal', 'Solucion Observaciones', 'Rafael J.', dia(107), 'Alta', 'En curso', 'No', '', 'No', '', '', 'Fase 1 - Diseño', 5],
+    ['Cristobal', 'Plazo Observaciones', 'Ingrid', dia(-1), 'Alta', 'En curso', 'No', '', 'No', '', '', 'Permisos MTC', 1],
+    ['Cristobal', 'Entregar Planos firmados y plteados - Archivar', 'Mafer', dia(-50), 'Alta', 'Finalizado', 'No', '', 'No', '', 'En coordinacion con Bruno', 'Fase 1 - Diseño', 48],
+    ['Cristobal', 'Sellado Aprobacion Munic - Ingresar solicitud', 'Mafer', '', 'Alta', 'Por hacer', 'No', '', 'No', '', '', 'Permisos MTC', 4],
+    ['Cristobal', 'Licencia de Obra - Cotizaciones', 'Rafael J.', '', 'Alta', 'Por hacer', 'No', '', 'No', '', '', '', 9],
+    ['Cristobal', 'Cotizacion Electricas', 'Rafael J.', '', 'Media', 'Por hacer', 'No', '', 'No', '', '', 'Acabados', 12],
+    ['Cristobal', 'Reclutar estudio de proyectistas', 'Renato', '', 'Media', 'Por hacer', 'No', '', 'No', '', '', '', 2],
+    ['Cristobal', 'Creacion de empresa Madretierra SAC - Minuta', 'Mafer', '', 'Alta', 'Por hacer', 'No', '', 'Si', 'Definir socios y aportes', '', 'Legal', 8],
   ];
 
   muestras.forEach(function (m) {
@@ -267,6 +268,7 @@ function cargarEjemplo() {
     fila[C.ID] = nuevoId();
     fila[C.PROYECTO] = m[0];
     fila[C.ACTIVIDAD] = m[1];
+    fila[C.ETIQUETAS] = m[11];
     fila[C.ENCARGADO] = m[2];
     fila[C.FECHA_LIMITE] = m[3];
     fila[C.PRIORIDAD] = m[4];
@@ -277,9 +279,9 @@ function cargarEjemplo() {
     fila[C.DECISION] = m[9];
     fila[C.COMENTARIO] = m[10];
     fila[C.CREADO_POR] = 'administracion@ejemplo.com';
-    fila[C.CREADO_EN] = dia(-(m[11] + 30));
+    fila[C.CREADO_EN] = dia(-(m[12] + 30));
     fila[C.ACTUALIZADO_POR] = 'administracion@ejemplo.com';
-    fila[C.ACTUALIZADO_EN] = dia(-m[11]);
+    fila[C.ACTUALIZADO_EN] = dia(-m[12]);
     agregarFila(CONFIG.SHEETS.MADRE, fila);
   });
 

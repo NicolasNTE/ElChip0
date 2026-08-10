@@ -76,12 +76,17 @@ No basta con "este rol puede editar". La pregunta es *qué campo*, *en qué fila
    Admin/Gerencia → todo (o su alcance de proyectos)
 
 ¿Qué campos puede ESCRIBIR?    Auth.camposEditables()
-   Responsable → Estado, Comentario, Riesgo, Detalle, Bloqueo, Decisión
+   Responsable → Estado, Comentario, Etiquetas, Riesgo, Detalle, Bloqueo, Decisión
                  + Actividad, Fecha, Prioridad, Proyecto
                    si él mismo creó la actividad
    Administración → todo
-   Gerencia → Bloqueo, Decisión, Comentario
+   Gerencia → Bloqueo, Decisión, Comentario, Etiquetas
 ```
+
+`Etiquetas` es la excepción a "cada rol ve/edita solo lo suyo": es libre para
+los tres roles a propósito. No es un dato del negocio como el Estado o el
+Bloqueo — es una forma de que cada quien agrupe tareas de un mismo proyecto
+para filtrarlas y darles seguimiento, sin abrir una hoja aparte.
 
 El detalle de las actividades propias importa: un responsable puede organizar
 el trabajo que él mismo se pone, pero **no puede mover la fecha de lo que le

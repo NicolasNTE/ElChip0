@@ -37,6 +37,7 @@ const CONFIG = {
     ID: 'ID',
     PROYECTO: 'Proyecto',
     ACTIVIDAD: 'Actividad',
+    ETIQUETAS: 'Etiquetas',
     ENCARGADO: 'Encargado',
     FECHA_LIMITE: 'Fecha limite',
     PRIORIDAD: 'Prioridad',

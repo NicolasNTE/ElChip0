@@ -147,6 +147,9 @@
       $('#n-encargado').value = EST.boot.usuario.nombre;
       llenarSelect($('#f-todas-encargado'), c.encargados, true);
     }
+
+    // Gerencia consulta y etiqueta, pero no crea actividades: no se le ofrece.
+    if (!EST.boot.permisos.puedeCrear) $('#bloque-alta').style.display = 'none';
   }
 
   /** Las pestañas visibles dependen del rol: no se ofrece lo que no se puede ver. */
@@ -156,8 +159,10 @@
     var nav = $('#pestanas');
     var lista = [];
 
-    if (rol !== ROLES.GERENCIA) lista.push({ id: 'responsable', texto: 'Mis actividades' });
-    if (rol === ROLES.ADMIN) lista.push({ id: 'admin', texto: 'Administración' });
+    // Gerencia ve las mismas vistas que Administración, salvo Accesos: solo
+    // Administración administra quién entra al sistema.
+    lista.push({ id: 'responsable', texto: 'Mis actividades' });
+    if (rol === ROLES.ADMIN || rol === ROLES.GERENCIA) lista.push({ id: 'admin', texto: 'Administración' });
     if (p.verTodo) lista.push({ id: 'gerencial', texto: 'Gerencial' });
     if (p.puedeAdministrarAccesos) lista.push({ id: 'accesos', texto: 'Accesos' });
 
@@ -201,15 +206,16 @@
       estado: $('#f-mias-estado').value,
       proyecto: $('#f-mias-proyecto').value,
       senal: $('#f-mias-senal').value,
+      etiqueta: $('#f-mias-etiqueta').value,
       soloAbiertas: $('#f-mias-abiertas').checked,
       texto: $('#f-mias-texto').value,
     };
   }
 
   function cargarMias() {
-    if (EST.boot.usuario.rol === ROLES.GERENCIA) return Promise.resolve();
     return llamar('listar', { filtro: filtrosMias() }).then(function (r) {
       EST.mias = r.actividades;
+      llenarSelect($('#f-mias-etiqueta'), r.etiquetas, true);
       pintarKpis($('#kpis-mias'), r.resumen, ['abiertas', 'vencidas', 'porVencer', 'riesgo', 'bloqueos']);
       $('#cuenta-mias').textContent = r.actividades.length;
       pintarTabla($('#tabla-mias'), r.actividades, { mostrarEncargado: false });
@@ -220,6 +226,7 @@
     var entrada = {
       actividad: $('#n-actividad').value,
       proyecto: $('#n-proyecto').value,
+      etiquetas: $('#n-etiquetas').value,
       fechaLimite: $('#n-fecha').value,
       prioridad: $('#n-prioridad').value,
       comentario: $('#n-comentario').value,
@@ -231,6 +238,7 @@
     llamar('crear', { actividad: entrada })
       .then(function () {
         $('#n-actividad').value = '';
+        $('#n-etiquetas').value = '';
         $('#n-comentario').value = '';
         $('#n-fecha').value = '';
         avisar('Actividad creada.', 'ok');
@@ -248,29 +256,35 @@
       proyecto: $('#f-todas-proyecto').value,
       estado: $('#f-todas-estado').value,
       senal: $('#f-todas-senal').value,
+      etiqueta: $('#f-todas-etiqueta').value,
       soloAbiertas: $('#f-todas-abiertas').checked,
       texto: $('#f-todas-texto').value,
     };
   }
 
   function cargarConsolidado() {
-    var esAdmin = EST.boot.usuario.rol === ROLES.ADMIN;
+    var rol = EST.boot.usuario.rol;
+    var esAdmin = rol === ROLES.ADMIN;
+    // Gerencia también ve la pestaña Administración (solo lectura donde no
+    // tiene permiso de campo); escalar sigue siendo cosa de Administración.
+    var veAdmin = esAdmin || rol === ROLES.GERENCIA;
     var tareas = [llamar('indicadores')];
-    if (esAdmin) {
+    if (veAdmin) {
       tareas.push(llamar('excepciones'));
       tareas.push(llamar('listar', { filtro: filtrosTodas() }));
     }
     return Promise.all(tareas).then(function (res) {
       EST.indicadores = res[0];
       pintarGerencial(res[0]);
-      if (!esAdmin) return;
+      if (!veAdmin) return;
       EST.excepciones = res[1];
       pintarExcepciones(res[1]);
       EST.todas = res[2].actividades;
+      llenarSelect($('#f-todas-etiqueta'), res[2].etiquetas, true);
       pintarKpis($('#kpis-admin'), res[2].resumen, ['abiertas', 'vencidas', 'riesgo', 'bloqueos', 'desactualizadas', 'sinFecha']);
       $('#cuenta-todas').textContent = res[2].actividades.length;
       pintarTabla($('#tabla-todas'), res[2].actividades, { mostrarEncargado: true });
-      pintarCumplimiento($('#tabla-cumplimiento'), res[0].responsables, true);
+      pintarCumplimiento($('#tabla-cumplimiento'), res[0].responsables, esAdmin);
     });
   }
 
@@ -552,6 +566,12 @@
 
       var tdAct = crear('td', 'actividad');
       tdAct.appendChild(crear('div', null, a.actividad));
+      if (a.etiquetas.length) {
+        var etqs = crear('div');
+        etqs.style.marginTop = '3px';
+        a.etiquetas.forEach(function (e) { etqs.appendChild(crear('span', 'tag azul', e)); });
+        tdAct.appendChild(etqs);
+      }
       if (a.comentario) tdAct.appendChild(crear('div', 'meta', a.comentario));
       tr.appendChild(tdAct);
 
@@ -675,6 +695,7 @@
     campo('Prioridad', CAMPOS.PRIORIDAD, 'select', c.prioridad, a.prioridad);
     campo('Estado', CAMPOS.ESTADO, 'select', c.estado, a.estado);
     campo('Descripción', CAMPOS.ACTIVIDAD, 'text', null, a.actividad, true);
+    campo('Etiquetas (separadas por coma)', CAMPOS.ETIQUETAS, 'text', null, a.etiquetasTexto, true);
     campo('¿Riesgo o interferencia?', CAMPOS.RIESGO, 'select', c.siNo, a.riesgo);
     campo('¿Espera decisión de Gerencia?', CAMPOS.BLOQUEO, 'select', c.siNo, a.bloqueo);
     campo('Detalle del riesgo', CAMPOS.RIESGO_DETALLE, 'textarea', null, a.riesgoDetalle, true);
@@ -751,12 +772,12 @@
       if (!abierto) $('#n-actividad').focus();
     });
 
-    ['#f-mias-estado', '#f-mias-proyecto', '#f-mias-senal', '#f-mias-abiertas'].forEach(function (s) {
+    ['#f-mias-estado', '#f-mias-proyecto', '#f-mias-senal', '#f-mias-etiqueta', '#f-mias-abiertas'].forEach(function (s) {
       $(s).addEventListener('change', function () { cargarMias().catch(function (e) { avisar(e.message, 'error'); }); });
     });
     $('#f-mias-texto').addEventListener('input', conRebote(function () { cargarMias(); }));
 
-    ['#f-todas-encargado', '#f-todas-proyecto', '#f-todas-estado', '#f-todas-senal', '#f-todas-abiertas'].forEach(function (s) {
+    ['#f-todas-encargado', '#f-todas-proyecto', '#f-todas-estado', '#f-todas-senal', '#f-todas-etiqueta', '#f-todas-abiertas'].forEach(function (s) {
       $(s).addEventListener('change', function () { cargarConsolidado().catch(function (e) { avisar(e.message, 'error'); }); });
     });
     $('#f-todas-texto').addEventListener('input', conRebote(function () { cargarConsolidado(); }));

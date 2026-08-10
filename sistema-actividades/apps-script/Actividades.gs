@@ -36,6 +36,7 @@ function filaAActividad(fila, indicePersonas, hoy) {
     fila: fila._fila,
     proyecto: String(fila[C.PROYECTO] || '').trim(),
     actividad: String(fila[C.ACTIVIDAD] || '').trim(),
+    etiquetasTexto: String(fila[C.ETIQUETAS] || '').trim(),
     encargado: encargadoNombre,
     encargadoEmail: persona ? persona.email : '',
     fechaLimite: aTextoFecha(fechaLimite),
@@ -53,6 +54,11 @@ function filaAActividad(fila, indicePersonas, hoy) {
   };
 
   // --- Campos derivados: se calculan, no se ingresan ---
+  /** Etiquetas libres (separadas por coma) con las que cualquier rol agrupa tareas de un proyecto. */
+  act.etiquetas = act.etiquetasTexto
+    .split(',')
+    .map(function (s) { return s.trim(); })
+    .filter(String);
   act.avance = CONFIG.PESO_AVANCE[estado] !== undefined ? CONFIG.PESO_AVANCE[estado] : 0;
   act.cerrada = cerrada;
   act.diasParaVencer = diasParaVencer;
@@ -196,6 +202,15 @@ function validarCampos(parche, usuario) {
         if (valor.length > 500) throw new Error('La descripción es demasiado larga (máx. 500).');
         break;
 
+      case C.ETIQUETAS:
+        valor = String(valor || '')
+          .split(',')
+          .map(function (s) { return s.trim(); })
+          .filter(String)
+          .join(', ');
+        if (valor.length > 300) throw new Error('Las etiquetas son demasiado largas (máx. 300).');
+        break;
+
       default:
         valor = typeof valor === 'string' ? valor.trim() : valor;
         if (typeof valor === 'string' && valor.length > 2000) {
@@ -221,6 +236,25 @@ function validarCampos(parche, usuario) {
   }
 
   return limpio;
+}
+
+/**
+ * Etiquetas en uso dentro de un conjunto de actividades, sin repetir.
+ * No es un catálogo cerrado: cualquiera con permiso escribe la etiqueta que
+ * necesita y, en cuanto existe en una fila, aparece aquí para filtrar por ella.
+ */
+function listarEtiquetas(actividades) {
+  const vistas = {};
+  const resultado = [];
+  actividades.forEach(function (a) {
+    (a.etiquetas || []).forEach(function (e) {
+      if (!vistas[e]) {
+        vistas[e] = true;
+        resultado.push(e);
+      }
+    });
+  });
+  return resultado.sort(function (a, b) { return a.localeCompare(b); });
 }
 
 /** Catálogo vivo de proyectos (hoja Catalogos, columna Proyecto). */

@@ -24,7 +24,7 @@
 
     <div class="kpis" id="kpis-mias"></div>
 
-    <div class="bloque">
+    <div class="bloque" id="bloque-alta">
       <h3>Agregar una actividad mía <button class="btn claro chico" id="btn-toggle-alta" style="margin-left:auto">Mostrar</button></h3>
       <div class="cuerpo" id="alta-caja" style="display:none">
         <div class="formulario">
@@ -47,6 +47,10 @@
           <div class="campo">
             <label for="n-prioridad">Prioridad</label>
             <select id="n-prioridad"></select>
+          </div>
+          <div class="campo ancho">
+            <label for="n-etiquetas">Etiquetas (opcional, separadas por coma)</label>
+            <input id="n-etiquetas" type="text" placeholder="Ej: Fase 1 - Cimentación, Documentación legal">
           </div>
           <div class="campo ancho">
             <label for="n-comentario">Comentario (opcional)</label>
@@ -74,6 +78,7 @@
             <option>Sin actualizar</option>
             <option>Sin fecha límite</option>
           </select>
+          <select id="f-mias-etiqueta"><option value="">Todas las etiquetas</option></select>
           <label style="font-size:14px;display:flex;align-items:center;gap:6px">
             <input type="checkbox" id="f-mias-abiertas" checked> Solo abiertas
           </label>
@@ -112,6 +117,7 @@
             <option>Sin actualizar</option>
             <option>Sin fecha límite</option>
           </select>
+          <select id="f-todas-etiqueta"><option value="">Todas las etiquetas</option></select>
           <label style="font-size:14px;display:flex;align-items:center;gap:6px">
             <input type="checkbox" id="f-todas-abiertas" checked> Solo abiertas
           </label>

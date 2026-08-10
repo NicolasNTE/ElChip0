@@ -113,9 +113,9 @@ entran por la web app, que se ejecuta con permisos del dueño.
 
 | Rol | Ve | Puede escribir |
 |---|---|---|
-| **Responsable** | Solo sus actividades | Estado, comentario, riesgo, pedido de decisión. Y todo lo demás en las actividades que él mismo creó |
-| **Administración** | Todo | Todo, incluida la asignación de encargados y los accesos |
-| **Gerencia** | Todo (solo lectura) | Registrar decisiones sobre los bloqueos |
+| **Responsable** | Solo sus actividades | Estado, comentario, etiquetas, riesgo, pedido de decisión. Y todo lo demás en las actividades que él mismo creó |
+| **Administración** | Todo, incluida la pestaña *Accesos* | Todo, incluida la asignación de encargados y los accesos |
+| **Gerencia** | Todo menos *Accesos* (solo lectura salvo lo de abajo) | Registrar decisiones sobre los bloqueos, comentar y agregar etiquetas |
 
 Dos formas de identificar a las personas, según lo que tenga la organización:
 
