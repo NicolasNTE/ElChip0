@@ -17,6 +17,7 @@ function onOpen() {
     .addItem('Instalar recordatorio diario', 'instalarDisparadorDiario')
     .addSeparator()
     .addItem('Enviar resumen ahora', 'rutinaDiaria')
+    .addItem('Avisar actualización a todo el equipo', 'menuAvisarActualizacion')
     .addToUi();
 }
 
@@ -305,6 +306,24 @@ function menuGenerarEnlaces() {
       r.url + '\n\nEnvíaselo por privado. No se puede volver a mostrar.',
       ui.ButtonSet.OK
     );
+  } catch (err) {
+    ui.alert('Error', err.message, ui.ButtonSet.OK);
+  }
+}
+
+/** Correo manual a todo el equipo activo avisando que el sistema cambió. */
+function menuAvisarActualizacion() {
+  const ui = SpreadsheetApp.getUi();
+  const resp = ui.prompt(
+    'Avisar actualización',
+    'Mensaje para todo el equipo (se enviará por correo a cada persona activa):',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (resp.getSelectedButton() !== ui.Button.OK) return;
+  try {
+    const actor = { email: Session.getActiveUser().getEmail() || 'administracion@sistema' };
+    const r = avisarActualizacionSistema(resp.getResponseText(), actor);
+    ui.alert('Listo', 'Aviso enviado a ' + r.enviados + ' personas.', ui.ButtonSet.OK);
   } catch (err) {
     ui.alert('Error', err.message, ui.ButtonSet.OK);
   }

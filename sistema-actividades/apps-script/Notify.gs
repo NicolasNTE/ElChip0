@@ -78,6 +78,29 @@ function rutinaDiaria() {
   }
 }
 
+/**
+ * Aviso manual a todo el equipo activo: "el sistema cambió, entra a ver".
+ * No es parte de la cadena de cumplimiento diaria; lo dispara Administración
+ * a mano desde el menú cuando hay una actualización que avisar.
+ */
+function avisarActualizacionSistema(mensaje, actor) {
+  const personas = listarPersonas().filter(function (p) { return p.activo; });
+  if (!personas.length) return { enviados: 0 };
+  const url = _urlApp();
+  const cuerpo = _htmlAviso(mensaje, url);
+  personas.forEach(function (p) { _enviar(p.email, 'El sistema se actualizó', cuerpo); });
+  registrarBitacora((actor && actor.email) || 'SISTEMA', 'AVISO_ACTUALIZACION', '', 'Aviso', '', String(personas.length) + ' personas');
+  return { enviados: personas.length };
+}
+
+function _htmlAviso(mensaje, url) {
+  return (
+    '<h2 style="font:600 18px system-ui;color:#1f2a44">El sistema se actualizó</h2>' +
+    '<p style="font:14px system-ui">' + _escapar(mensaje || 'Hay cambios nuevos en el sistema de actividades. Entra a revisar tu tablero.') + '</p>' +
+    _pie(url)
+  );
+}
+
 /** Escalamiento manual desde la Vista Administración. */
 function enviarRecordatorio(email, mensaje, actor) {
   const destino = normalizarEmail(email);
