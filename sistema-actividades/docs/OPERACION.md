@@ -123,6 +123,21 @@ Si nadie los abre, no es un problema de los correos: es que el sistema todavía
 no es el lugar donde vive el trabajo. Se corrige con las rutinas de arriba, no
 con más correos.
 
+### Además, en caliente (no esperan a las 7:00)
+
+| Cuándo | Quién recibe |
+|---|---|
+| Se crea una actividad | El encargado (queda a cargo de algo nuevo) y Gerencia |
+| Cambia el `Estado` de una actividad | Gerencia |
+
+Solo el `Estado` dispara este aviso instantáneo; el resto de cambios (fecha,
+comentario, riesgo…) se ven en el resumen diario o al abrir la vista
+Administración — de lo contrario cada edición mandaría un correo.
+
+Con un equipo pequeño esto no pesa, pero si el volumen de actividades crece
+mucho vale la pena revisar la cuota diaria de `MailApp` (100 correos/día en
+una cuenta Gmail suelta, 1 500/día en Google Workspace).
+
 ---
 
 ## Poner el sistema en marcha

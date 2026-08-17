@@ -79,6 +79,54 @@ function rutinaDiaria() {
 }
 
 /**
+ * En caliente, no en el resumen de las 7am: al crear una actividad, avisa
+ * a quien queda a cargo y a Gerencia. No espera al día siguiente para que
+ * alguien se entere de que tiene trabajo nuevo.
+ */
+function avisarNuevaActividad(actividad, creador) {
+  const destinatarios = [];
+  if (actividad.encargadoEmail) destinatarios.push(actividad.encargadoEmail);
+  listarPersonas()
+    .filter(function (p) { return p.activo && p.rol === CONFIG.ROLES.GERENCIA; })
+    .forEach(function (p) { if (destinatarios.indexOf(p.email) < 0) destinatarios.push(p.email); });
+  if (!destinatarios.length) return;
+
+  const url = _urlApp();
+  const cuerpo =
+    '<h2 style="font:600 18px system-ui;color:#1f2a44">Nueva actividad</h2>' +
+    '<p style="font:14px system-ui">' + _escapar(creador.nombre || creador.email) +
+    ' agregó una actividad en <b>' + _escapar(actividad.proyecto) + '</b>, a cargo de <b>' +
+    _escapar(actividad.encargado || 'sin encargado') + '</b>.</p>' +
+    _tabla([actividad]) +
+    _pie(url);
+
+  _enviar(destinatarios.join(','), 'Nueva actividad: ' + actividad.actividad, cuerpo);
+}
+
+/**
+ * En caliente: cuando el Estado de una actividad cambia, Gerencia se entera
+ * sin tener que abrir el tablero. Solo Estado dispara este aviso — el resto
+ * de campos se ve en el resumen diario o al abrir la vista Administración.
+ */
+function avisarCambioEstado(actividad, estadoAnterior, actor) {
+  const gerentes = listarPersonas()
+    .filter(function (p) { return p.activo && p.rol === CONFIG.ROLES.GERENCIA; })
+    .map(function (p) { return p.email; });
+  if (!gerentes.length) return;
+
+  const url = _urlApp();
+  const cuerpo =
+    '<h2 style="font:600 18px system-ui;color:#1f2a44">Cambio de estado</h2>' +
+    '<p style="font:14px system-ui">' + _escapar(actor.nombre || actor.email) +
+    ' movió <b>' + _escapar(actividad.actividad) + '</b> de <b>' + _escapar(estadoAnterior || '—') +
+    '</b> a <b>' + _escapar(actividad.estado) + '</b>.</p>' +
+    _tabla([actividad]) +
+    _pie(url);
+
+  _enviar(gerentes.join(','), 'Cambio de estado: ' + actividad.actividad, cuerpo);
+}
+
+/**
  * Aviso manual a todo el equipo activo: "el sistema cambió, entra a ver".
  * No es parte de la cadena de cumplimiento diaria; lo dispara Administración
  * a mano desde el menú cuando hay una actualización que avisar.

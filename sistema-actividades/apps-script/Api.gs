@@ -164,7 +164,7 @@ function apiCrear(usuario, p) {
 
   const limpio = validarCampos(parche, usuario);
 
-  return conBloqueo(function () {
+  const creada = conBloqueo(function () {
     const id = nuevoId();
     limpio[C.ID] = id;
     limpio[C.CREADO_POR] = usuario.email;
@@ -175,10 +175,14 @@ function apiCrear(usuario, p) {
     agregarFila(CONFIG.SHEETS.MADRE, limpio);
     registrarBitacora(usuario.email, 'ALTA', id, CONFIG.COLS.ACTIVIDAD, '', limpio[C.ACTIVIDAD]);
 
-    const creada = actividadPorId(id);
-    creada.editables = camposEditables(usuario, creada);
-    return creada;
+    const nueva = actividadPorId(id);
+    nueva.editables = camposEditables(usuario, nueva);
+    return nueva;
   });
+
+  // Fuera del lock: un correo lento no debe retener la escritura de nadie más.
+  avisarNuevaActividad(creada, usuario);
+  return creada;
 }
 
 /**
@@ -206,8 +210,10 @@ function apiActualizar(usuario, p) {
   if (!Object.keys(parche).length) throw new Error('No hay cambios que guardar.');
 
   const limpio = validarCampos(parche, usuario);
+  const cambiaEstado = limpio[C.ESTADO] !== undefined;
+  var estadoAnterior = '';
 
-  return conBloqueo(function () {
+  const nueva = conBloqueo(function () {
     // Releemos dentro del lock: si alguien más escribió, trabajamos sobre lo último.
     invalidarCache(CONFIG.SHEETS.MADRE);
     const vigente = actividadPorId(id);
@@ -216,6 +222,7 @@ function apiActualizar(usuario, p) {
     Object.keys(limpio).forEach(function (campo) {
       antes[campo] = _valorActual(vigente, campo);
     });
+    if (cambiaEstado) estadoAnterior = antes[C.ESTADO];
 
     limpio[C.ACTUALIZADO_POR] = usuario.email;
     limpio[C.ACTUALIZADO_EN] = new Date();
@@ -223,10 +230,17 @@ function apiActualizar(usuario, p) {
     actualizarFila(CONFIG.SHEETS.MADRE, vigente.fila, limpio);
     registrarCambios(usuario.email, id, antes, parche);
 
-    const nueva = actividadPorId(id);
-    nueva.editables = camposEditables(usuario, nueva);
-    return nueva;
+    const actualizada = actividadPorId(id);
+    actualizada.editables = camposEditables(usuario, actualizada);
+    return actualizada;
   });
+
+  // Fuera del lock, y solo si el estado de verdad cambió de valor.
+  if (cambiaEstado && estadoAnterior !== nueva.estado) {
+    avisarCambioEstado(nueva, estadoAnterior, usuario);
+  }
+
+  return nueva;
 }
 
 /** Lee del objeto de dominio el valor que corresponde a una cabecera. */
