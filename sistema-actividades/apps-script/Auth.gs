@@ -11,6 +11,27 @@
  *             con ?k=<token>; en la hoja Personas solo se guarda su hash.
  */
 
+/**
+ * Todos los campos de una actividad. Administración y Gerencia operan la
+ * tabla madre en igualdad de condiciones — la única puerta que Gerencia no
+ * tiene es Accesos, que no es un campo de fila, es otra pantalla (ver
+ * `puedeAdministrarAccesos` en Api.gs).
+ */
+const CAMPOS_OPERATIVOS_COMPLETOS = [
+  CONFIG.COLS.PROYECTO,
+  CONFIG.COLS.ACTIVIDAD,
+  CONFIG.COLS.ETIQUETAS,
+  CONFIG.COLS.ENCARGADO,
+  CONFIG.COLS.FECHA_LIMITE,
+  CONFIG.COLS.PRIORIDAD,
+  CONFIG.COLS.ESTADO,
+  CONFIG.COLS.RIESGO,
+  CONFIG.COLS.RIESGO_DETALLE,
+  CONFIG.COLS.BLOQUEO,
+  CONFIG.COLS.DECISION,
+  CONFIG.COLS.COMENTARIO,
+];
+
 /** Campos que cada rol puede escribir en una actividad ya existente. */
 const PERMISOS_CAMPO = {
   Responsable: [
@@ -22,26 +43,8 @@ const PERMISOS_CAMPO = {
     CONFIG.COLS.BLOQUEO,
     CONFIG.COLS.DECISION,
   ],
-  Administracion: [
-    CONFIG.COLS.PROYECTO,
-    CONFIG.COLS.ACTIVIDAD,
-    CONFIG.COLS.ETIQUETAS,
-    CONFIG.COLS.ENCARGADO,
-    CONFIG.COLS.FECHA_LIMITE,
-    CONFIG.COLS.PRIORIDAD,
-    CONFIG.COLS.ESTADO,
-    CONFIG.COLS.RIESGO,
-    CONFIG.COLS.RIESGO_DETALLE,
-    CONFIG.COLS.BLOQUEO,
-    CONFIG.COLS.DECISION,
-    CONFIG.COLS.COMENTARIO,
-  ],
-  Gerencia: [
-    CONFIG.COLS.BLOQUEO,
-    CONFIG.COLS.DECISION,
-    CONFIG.COLS.COMENTARIO,
-    CONFIG.COLS.ETIQUETAS,
-  ],
+  Administracion: CAMPOS_OPERATIVOS_COMPLETOS,
+  Gerencia: CAMPOS_OPERATIVOS_COMPLETOS,
 };
 
 /**
@@ -187,9 +190,9 @@ function camposEditables(usuario, actividad) {
   return base;
 }
 
-/** ¿Puede crear actividades? Todos los roles operativos sí; Gerencia no. */
+/** ¿Puede crear actividades? Todos los roles pueden. */
 function puedeCrear(usuario) {
-  return esAdmin(usuario) || esResponsable(usuario);
+  return esAdmin(usuario) || esGerencia(usuario) || esResponsable(usuario);
 }
 
 /**

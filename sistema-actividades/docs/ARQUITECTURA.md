@@ -80,13 +80,19 @@ No basta con "este rol puede editar". La pregunta es *qué campo*, *en qué fila
                  + Actividad, Fecha, Prioridad, Proyecto
                    si él mismo creó la actividad
    Administración → todo
-   Gerencia → Bloqueo, Decisión, Comentario, Etiquetas
+   Gerencia → todo (los mismos campos que Administración)
 ```
 
-`Etiquetas` es la excepción a "cada rol ve/edita solo lo suyo": es libre para
-los tres roles a propósito. No es un dato del negocio como el Estado o el
-Bloqueo — es una forma de que cada quien agrupe tareas de un mismo proyecto
-para filtrarlas y darles seguimiento, sin abrir una hoja aparte.
+Administración y Gerencia son, a nivel de campo, el mismo rol: ambas crean,
+reasignan, mueven fechas y editan cualquier cosa en cualquier actividad. La
+única puerta que distingue a Gerencia es *Accesos* — generar y revocar
+enlaces, dar de alta personas — que no es un campo de fila, es otra pantalla
+(`puedeAdministrarAccesos` en `Api.gs`, siempre `false` para Gerencia).
+
+`Etiquetas` es libre para los tres roles a propósito: no es un dato del
+negocio como el Estado o el Bloqueo, es una forma de que cada quien agrupe
+tareas de un mismo proyecto para filtrarlas y darles seguimiento, sin abrir
+una hoja aparte.
 
 El detalle de las actividades propias importa: un responsable puede organizar
 el trabajo que él mismo se pone, pero **no puede mover la fecha de lo que le

@@ -59,14 +59,15 @@ function apiBootstrap(usuario) {
       prioridad: CONFIG.CATALOGOS.PRIORIDAD,
       siNo: CONFIG.CATALOGOS.SI_NO,
       proyecto: listarProyectos(),
-      // Solo Administración necesita la lista de gente para asignar.
-      encargados: esAdmin(usuario)
+      // Administración y Gerencia asignan trabajo; Responsable solo se ve a sí mismo.
+      encargados: (esAdmin(usuario) || esGerencia(usuario))
         ? personas.filter(function (x) { return x.activo; }).map(function (x) { return x.nombre; })
         : [usuario.nombre],
     },
     permisos: {
       puedeCrear: puedeCrear(usuario),
-      puedeAsignar: esAdmin(usuario),
+      puedeAsignar: esAdmin(usuario) || esGerencia(usuario),
+      // Accesos es la única puerta que Gerencia no comparte con Administración.
       puedeAdministrarAccesos: esAdmin(usuario),
       verTodo: esAdmin(usuario) || esGerencia(usuario),
     },
@@ -138,13 +139,16 @@ function apiListar(usuario, p) {
   };
 }
 
-/** Alta de actividad. El Responsable solo puede crearse trabajo a sí mismo. */
+/**
+ * Alta de actividad. Administración y Gerencia pueden asignarla a
+ * cualquiera; el Responsable solo puede crearse trabajo a sí mismo.
+ */
 function apiCrear(usuario, p) {
   if (!puedeCrear(usuario)) throw new Error('Tu rol no puede crear actividades.');
   const C = CONFIG.COLS;
   const entrada = p.actividad || {};
 
-  const encargado = esAdmin(usuario)
+  const encargado = (esAdmin(usuario) || esGerencia(usuario))
     ? String(entrada.encargado || usuario.nombre).trim()
     : usuario.nombre;
 
@@ -345,6 +349,8 @@ function apiRevocarEnlace(usuario, p) {
 
 /** Eslabón 4: escalar. Administración empuja a un responsable concreto. */
 function apiRecordatorio(usuario, p) {
-  if (!esAdmin(usuario)) throw new Error('Solo Administración puede escalar.');
+  if (!esAdmin(usuario) && !esGerencia(usuario)) {
+    throw new Error('Solo Administración o Gerencia pueden escalar.');
+  }
   return enviarRecordatorio(String(p.email || ''), String(p.mensaje || ''), usuario);
 }

@@ -42,17 +42,17 @@ Todos los responsables, todas las actividades, con la data viva.
 Es lo que hoy se hace con el Excel, pero encima trae el **tablero de
 excepciones**: vencidas, en riesgo, esperando a Gerencia, sin actualizar, sin
 fecha límite. Aquí operan los eslabones 2 y 4 de la cadena de cumplimiento
-(**detectar** y **escalar**). Administración es dueña de la tabla madre: es el
-único rol que reasigna, mueve fechas y administra accesos.
+(**detectar** y **escalar**). **Gerencia ve y opera esta misma vista igual que
+Administración** — crea, reasigna, mueve fechas, escala —; lo único que queda
+fuera de su alcance es la pestaña *Accesos*.
 
 ### Vista 3 — Gerencial
 El consolidado: % de avance por proyecto, actividades en riesgo/interferencia,
 indicadores de cumplimiento por responsable y —lo importante— **la cola de
 decisiones que espera a Gerencia**, listada aparte, contada y con antigüedad.
 
-Gerencia no edita el trabajo de nadie: solo **registra su decisión**, y al
-hacerlo el bloqueo se levanta y la respuesta queda escrita en la actividad con
-fecha y autor. Deja de vivir en un chat.
+Registrar una decisión levanta el bloqueo solo, y la respuesta queda escrita
+en la actividad con fecha y autor. Deja de vivir en un chat.
 
 ---
 
@@ -114,8 +114,8 @@ entran por la web app, que se ejecuta con permisos del dueño.
 | Rol | Ve | Puede escribir |
 |---|---|---|
 | **Responsable** | Solo sus actividades | Estado, comentario, etiquetas, riesgo, pedido de decisión. Y todo lo demás en las actividades que él mismo creó |
-| **Administración** | Todo, incluida la pestaña *Accesos* | Todo, incluida la asignación de encargados y los accesos |
-| **Gerencia** | Todo menos *Accesos* (solo lectura salvo lo de abajo) | Registrar decisiones sobre los bloqueos, comentar y agregar etiquetas |
+| **Administración** | Todo, incluida la pestaña *Accesos* | Todo: crear, reasignar, mover fechas, editar cualquier campo, escalar, y administrar accesos |
+| **Gerencia** | Todo menos *Accesos* | Lo mismo que Administración: crear, reasignar, mover fechas, editar cualquier campo, escalar. Solo Administración administra accesos |
 
 Dos formas de identificar a las personas, según lo que tenga la organización:
 

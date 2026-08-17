@@ -103,9 +103,12 @@ Abre la pestaña **Gerencial**.
    perseguir gente. Un 0% casi siempre significa que esa persona no está usando
    el sistema, no que no esté trabajando.
 
-Lo que Gerencia **no** hace en el sistema: cambiar estados o fechas de nadie.
-Si hace falta, se le pide a Administración. Mantener esa frontera es lo que
-hace que los números signifiquen algo.
+Gerencia también puede entrar a **Administración** y operarla igual que
+Administración: crear actividades, reasignarlas, mover fechas, escalar. La
+única pestaña fuera de su alcance es **Accesos**. Que se pueda no significa
+que convenga hacerlo seguido — si dos personas reasignan sin avisarse, el
+tablero deja de ser confiable. En la práctica, que Gerencia edite directamente
+es la excepción (una urgencia, alguien de licencia), no la rutina.
 
 ---
 

@@ -264,10 +264,10 @@
 
   function cargarConsolidado() {
     var rol = EST.boot.usuario.rol;
-    var esAdmin = rol === ROLES.ADMIN;
-    // Gerencia también ve la pestaña Administración (solo lectura donde no
-    // tiene permiso de campo); escalar sigue siendo cosa de Administración.
-    var veAdmin = esAdmin || rol === ROLES.GERENCIA;
+    // Administración y Gerencia operan la Vista Administración en igualdad
+    // de condiciones: ambas ven, editan y pueden escalar. Solo Accesos queda
+    // fuera de Gerencia (esa pestaña ni siquiera se construye para su rol).
+    var veAdmin = rol === ROLES.ADMIN || rol === ROLES.GERENCIA;
     var tareas = [llamar('indicadores')];
     if (veAdmin) {
       tareas.push(llamar('excepciones'));
@@ -284,7 +284,7 @@
       pintarKpis($('#kpis-admin'), res[2].resumen, ['abiertas', 'vencidas', 'riesgo', 'bloqueos', 'desactualizadas', 'sinFecha']);
       $('#cuenta-todas').textContent = res[2].actividades.length;
       pintarTabla($('#tabla-todas'), res[2].actividades, { mostrarEncargado: true });
-      pintarCumplimiento($('#tabla-cumplimiento'), res[0].responsables, esAdmin);
+      pintarCumplimiento($('#tabla-cumplimiento'), res[0].responsables, veAdmin);
     });
   }
 
