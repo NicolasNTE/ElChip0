@@ -165,7 +165,7 @@ local/                Mismo código corriendo en Node, sin Google
   servidor.mjs          Servidor de desarrollo
   gas-shim.mjs          Servicios de Google emulados sobre un JSON
 
-docs/                 Instalación, arquitectura, operación, modelo de datos
+docs/                 Instalación, arquitectura, operación, modelo de datos, bitácora de cambios
 ```
 
 ---
