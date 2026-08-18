@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <?!= include('ui/Styles'); ?>
+</head>
+<body data-token="<?= token ?>" data-vista="<?= vistaInicial ?>">
+
+<header class="barra">
+  <h1><?= appName ?></h1>
+  <div class="quien" id="quien"></div>
+</header>
+
+<nav class="pestanas" id="pestanas"></nav>
+
+<main id="contenido">
+  <div class="cargando" id="cargando">Cargando tu información…</div>
+
+  <!-- ================= VISTA 1 — RESPONSABLE ================= -->
+  <section class="vista" id="vista-responsable">
+    <h2 class="titulo">Mis actividades</h2>
+    <p class="sub">Todo lo que tienes asignado, de todos los proyectos, en un solo lugar. Ordenado por urgencia y fecha.</p>
+
+    <div class="kpis" id="kpis-mias"></div>
+
+    <div class="bloque" id="bloque-alta">
+      <h3>Agregar una actividad mía <button class="btn claro chico" id="btn-toggle-alta" style="margin-left:auto">Mostrar</button></h3>
+      <div class="cuerpo" id="alta-caja" style="display:none">
+        <div class="formulario">
+          <div class="campo ancho">
+            <label for="n-actividad">Actividad</label>
+            <input id="n-actividad" type="text" placeholder="Qué hay que hacer, en una línea">
+          </div>
+          <div class="campo">
+            <label for="n-proyecto">Proyecto</label>
+            <select id="n-proyecto"></select>
+          </div>
+          <div class="campo" id="campo-encargado" style="display:none">
+            <label for="n-encargado">Encargado</label>
+            <select id="n-encargado"></select>
+          </div>
+          <div class="campo">
+            <label for="n-fecha">Fecha límite</label>
+            <input id="n-fecha" type="date">
+          </div>
+          <div class="campo">
+            <label for="n-prioridad">Prioridad</label>
+            <select id="n-prioridad"></select>
+          </div>
+          <div class="campo ancho">
+            <label for="n-etiquetas">Etiquetas (opcional, separadas por coma)</label>
+            <input id="n-etiquetas" type="text" placeholder="Ej: Fase 1 - Cimentación, Documentación legal">
+          </div>
+          <div class="campo ancho">
+            <label for="n-comentario">Comentario (opcional)</label>
+            <input id="n-comentario" type="text" placeholder="Contexto, dependencias, número de expediente…">
+          </div>
+          <div class="campo ancho">
+            <button class="btn" id="btn-crear">Guardar actividad</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bloque">
+      <h3>Mi lista <span class="cuenta" id="cuenta-mias">0</span></h3>
+      <div class="cuerpo">
+        <div class="filtros">
+          <select id="f-mias-estado"><option value="">Todos los estados</option></select>
+          <select id="f-mias-proyecto"><option value="">Todos los proyectos</option></select>
+          <select id="f-mias-senal">
+            <option value="">Todas las señales</option>
+            <option>Vencida</option>
+            <option>Por vencer</option>
+            <option>Riesgo/Interferencia</option>
+            <option>Espera Gerencia</option>
+            <option>Sin actualizar</option>
+            <option>Sin fecha límite</option>
+          </select>
+          <select id="f-mias-etiqueta"><option value="">Todas las etiquetas</option></select>
+          <label style="font-size:14px;display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="f-mias-abiertas" checked> Solo abiertas
+          </label>
+          <input type="search" id="f-mias-texto" placeholder="Buscar…">
+        </div>
+        <div class="tabla-envoltura" id="tabla-mias"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= VISTA 2 — ADMINISTRACIÓN ================= -->
+  <section class="vista" id="vista-admin">
+    <h2 class="titulo">Administración</h2>
+    <p class="sub">Todos los responsables, todas las actividades, con la data viva. Aquí se detecta y se escala.</p>
+
+    <div class="kpis" id="kpis-admin"></div>
+
+    <div class="bloque">
+      <h3>Excepciones — qué necesita intervención hoy</h3>
+      <div class="cuerpo" id="excepciones"></div>
+    </div>
+
+    <div class="bloque">
+      <h3>Tabla madre <span class="cuenta" id="cuenta-todas">0</span></h3>
+      <div class="cuerpo">
+        <div class="filtros">
+          <select id="f-todas-encargado"><option value="">Todos los encargados</option></select>
+          <select id="f-todas-proyecto"><option value="">Todos los proyectos</option></select>
+          <select id="f-todas-estado"><option value="">Todos los estados</option></select>
+          <select id="f-todas-senal">
+            <option value="">Todas las señales</option>
+            <option>Vencida</option>
+            <option>Por vencer</option>
+            <option>Riesgo/Interferencia</option>
+            <option>Espera Gerencia</option>
+            <option>Sin actualizar</option>
+            <option>Sin fecha límite</option>
+          </select>
+          <select id="f-todas-etiqueta"><option value="">Todas las etiquetas</option></select>
+          <label style="font-size:14px;display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="f-todas-abiertas" checked> Solo abiertas
+          </label>
+          <input type="search" id="f-todas-texto" placeholder="Buscar…">
+        </div>
+        <div class="tabla-envoltura" id="tabla-todas"></div>
+      </div>
+    </div>
+
+    <div class="bloque">
+      <h3>Cumplimiento por responsable</h3>
+      <div class="cuerpo tabla-envoltura" id="tabla-cumplimiento"></div>
+    </div>
+  </section>
+
+  <!-- ================= VISTA 3 — GERENCIAL ================= -->
+  <section class="vista" id="vista-gerencial">
+    <h2 class="titulo">Vista gerencial</h2>
+    <p class="sub">El consolidado: avance por proyecto, lo que está en riesgo y lo que espera una decisión.</p>
+
+    <div class="kpis" id="kpis-gerencia"></div>
+
+    <div class="bloque">
+      <h3>Esperando decisión de Gerencia <span class="cuenta" id="cuenta-decisiones">0</span></h3>
+      <div class="cuerpo tabla-envoltura" id="tabla-decisiones"></div>
+    </div>
+
+    <div class="bloque">
+      <h3>Avance por proyecto</h3>
+      <div class="cuerpo tabla-envoltura" id="tabla-proyectos"></div>
+    </div>
+
+    <div class="bloque">
+      <h3>Indicadores de cumplimiento por responsable</h3>
+      <div class="cuerpo tabla-envoltura" id="tabla-gerencia-responsables"></div>
+    </div>
+  </section>
+
+  <!-- ================= ACCESOS (solo Administración) ================= -->
+  <section class="vista" id="vista-accesos">
+    <h2 class="titulo">Accesos</h2>
+    <p class="sub">Quién entra, con qué rol y con qué enlace. El archivo de datos no se comparte con nadie: todos entran por aquí.</p>
+    <div class="bloque">
+      <h3>Padrón de personas</h3>
+      <div class="cuerpo tabla-envoltura" id="tabla-personas"></div>
+    </div>
+  </section>
+</main>
+
+<!-- Panel de detalle -->
+<div class="detalle" id="detalle">
+  <div class="panel">
+    <button class="cerrar" id="detalle-cerrar" aria-label="Cerrar">&times;</button>
+    <div id="detalle-cuerpo"></div>
+  </div>
+</div>
+
+<div id="aviso"></div>
+
+<?!= include('ui/App'); ?>
+</body>
+</html>

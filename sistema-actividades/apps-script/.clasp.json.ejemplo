@@ -1,0 +1,6 @@
+{
+  "_comentario": "Copia este archivo a .clasp.json y reemplaza scriptId por el de TU proyecto (Extensiones > Apps Script > Configuración del proyecto).",
+  "scriptId": "PEGA-AQUI-EL-ID-DE-TU-PROYECTO",
+  "rootDir": ".",
+  "fileExtension": "gs"
+}
